@@ -1,0 +1,79 @@
+// Time-stamp: </w/parallel/w/openmp/rpi/common, Mon,  9 Feb 2015, 04:47:08 EST, http://wrfranklin.org/>
+
+// Misc useful things for my C++ OpenMP programs
+
+#include <functional>
+#include <iomanip>
+#include <iostream>
+#include <locale>
+#include <math.h>
+#include <omp.h>
+#include <random>
+#include <string>
+#include <sys/time.h>
+#include <sys/timeb.h>
+#include <sys/times.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <time.h>
+
+using std::cout;
+using std::cerr;
+using std::ios_base;
+using std::locale;
+using std::endl;
+using std::string;
+
+
+#define PRINT(arg)  #arg "= " << (arg)     // Print an expression's name then its value, possibly 
+// followed by a comma or endl.   
+// Ex: cout << PRINTC(x) << PRINTN(y);
+#define PRINTC(arg)  redtty << #arg << deftty << "= " << (arg) << ", "
+#define PRINTN(arg)  redtty << #arg << deftty << "= " << (arg)  << endl
+
+const string redtty("\033[1;31m");   // tell tty to switch to red
+const string greentty("\033[1;32m");   // tell tty to switch to bright green
+const string bluetty("\033[1;34m");   // tell tty to switch to bright blue
+const string magentatty("\033[1;35m");   // tell tty to switch to bright magenta
+const string yellowbgtty("\033[1;43m");   // tell tty to switch to bright yellow background
+const string underlinetty("\033[4m");   // tell tty to switch to underline
+const string deftty("\033[0m");      // tell tty to switch back to default color
+
+//  DELTA_CPU_TIME Returns time in seconds since last Delta_Time.  Automatically initializes
+//  itself on 1st call and returns 0.  Also, set time from process start (or from 1st
+//  call) into CPUTotTime.
+
+double CPUTotTime(0.);
+double ClockTotTime(0.);
+
+double Process_CPU_Time()  {  // Return CPU(user+system) time since start of process.
+  timespec tp;
+  clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &tp);
+  return tp.tv_sec + tp.tv_nsec*1e-9;
+}
+
+double Delta_CPU_Time()  {
+  static double old_time = 0.0;
+  double  delta;
+  CPUTotTime = Process_CPU_Time();
+  delta = CPUTotTime - old_time;
+  old_time = CPUTotTime;
+  return delta;  }
+
+double Delta_Clock_Time()  {
+  timespec tp;
+  static double Clockbasetime;
+  static double old_time = 0.0;
+  double  delta;
+  static bool first = true;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &tp);
+  ClockTotTime = tp.tv_sec + tp.tv_nsec*1e-9;
+  if (first) {
+    Clockbasetime = ClockTotTime;
+    first = false;
+  }
+  //  cout << PRINTC(first) << PRINTC(Clockbasetime) <<  PRINTN(ClockTotTime);
+  ClockTotTime -= Clockbasetime;
+  delta = ClockTotTime - old_time;
+  old_time = ClockTotTime;
+  return delta;  }
